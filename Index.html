@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detailed Multiplication Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .game-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            text-align: center;
+            border: 2px dotted #333;
+        }
+        pre {
+            font-family: monospace;
+            font-size: 18px;
+            white-space: pre;
+            text-align: right;
+            margin-bottom: 10px;
+        }
+        input {
+            width: 100px;
+            padding: 5px;
+            margin: 5px;
+            -moz-appearance: textfield;
+        }
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        button {
+            padding: 5px 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .feedback {
+            margin-top: 5px;
+            font-style: italic;
+        }
+        #result, #timer, #difficulty {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        #score {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-weight: bold;
+        }
+        #summary {
+            margin-top: 20px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div id="score">Score: 0</div>
+    <div class="game-container">
+        <h2>Detailed Multiplication Game</h2>
+        <div id="difficulty">
+            Difficulty: 
+            <button onclick="setDifficulty('easy')">Easy</button>
+            <button onclick="setDifficulty('medium')">Medium</button>
+            <button onclick="setDifficulty('hard')">Hard</button>
+        </div>
+        <div id="timer">Time: 0s</div>
+        <pre id="main-question"></pre>
+        <hr>
+        <pre id="tens-question"></pre>
+        <input type="number" id="tens-answer" placeholder="Tens answer">
+        <button onclick="checkTensAnswer()">Check Tens</button>
+        <div id="tens-feedback" class="feedback"></div>
+        <hr>
+        <pre id="ones-question"></pre>
+        <input type="number" id="ones-answer" placeholder="Ones answer">
+        <button onclick="checkOnesAnswer()">Check Ones</button>
+        <div id="ones-feedback" class="feedback"></div>
+        <hr>
+        <pre id="final-addition"></pre>
+        <input type="number" id="final-answer" placeholder="Final answer">
+        <button onclick="checkFinalAnswer()">Check Final</button>
+        <div id="final-feedback" class="feedback"></div>
+        <hr>
+        <button onclick="checkAllAnswers()">Check All Answers</button>
+        <p id="result"></p>
+        <div id="summary"></div>
+    </div>
+
+    <script>
+        let num1, num2, tens, ones, tensProduct, onesProduct, correctAnswer, score = 0;
+        let tryten = 0, tryone = 0, tryfinal = 0;
+        let tensChecked = false, onesChecked = false;
+        let startTime, timerInterval;
+        let difficulty = 'medium';
+        let problemsSolved = 0;
+        let totalTime = 0;
+        let problemTypes = { easy: 0, medium: 0, hard: 0 };
+
+        function setDifficulty(level) {
+            difficulty = level;
+            generateQuestion();
+        }
+
+        function generateQuestion() {
+            clearInterval(timerInterval);
+            startTime = new Date();
+            timerInterval = setInterval(updateTimer, 1000);
+
+            if (difficulty === 'easy') {
+                num1 = Math.floor(Math.random() * 90) + 10; // 2-digit number
+                num2 = Math.floor(Math.random() * 9) + 1;  // 1-digit number
+            } else if (difficulty === 'medium') {
+                num1 = Math.floor(Math.random() * 90) + 10; // 2-digit number
+                num2 = Math.floor(Math.random() * 90) + 10; // 2-digit number
+            } else {
+                num1 = Math.floor(Math.random() * 900) + 100; // 3-digit number
+                num2 = Math.floor(Math.random() * 90) + 10;   // 2-digit number
+            }
+
+            tens = Math.floor(num2 / 10);
+            ones = num2 % 10;
+            tensProduct = num1 * (tens * 10);
+            onesProduct = num1 * ones;
+            correctAnswer = num1 * num2;
+
+            document.getElementById('main-question').textContent = `${num1} × ${num2} = ___`;
+            document.getElementById('tens-question').textContent = `${num1}\n× ${tens}0\n———————`;
+            document.getElementById('ones-question').textContent = `${num1}\n× ${ones}\n———————`;
+            document.getElementById('final-addition').textContent = `  ___\n+ ___\n———————`;
+
+            document.getElementById('tens-answer').value = '';
+            document.getElementById('ones-answer').value = '';
+            document.getElementById('final-answer').value = '';
+            document.getElementById('result').textContent = '';
+            document.getElementById('tens-feedback').textContent = '';
+            document.getElementById('ones-feedback').textContent = '';
+            document.getElementById('final-feedback').textContent = '';
+
+            tryten = 0;
+            tryone = 0;
+            tryfinal = 0;
+            tensChecked = false;
+            onesChecked = false;
+        }
+
+        function updateTimer() {
+            const currentTime = new Date();
+            const elapsedTime = Math.floor((currentTime - startTime) / 1000);
+            document.getElementById('timer').textContent = `Time: ${elapsedTime}s`;
+        }
+
+        function checkTensAnswer() {
+            const tensAnswer = parseInt(document.getElementById('tens-answer').value);
+            if (tensAnswer === tensProduct) {
+                document.getElementById('tens-feedback').textContent = 'Correct!';
+                tensChecked = true;
+                updateFinalAddition();
+            } else if (tryten === 0) {
+                document.getElementById('tens-feedback').textContent = `Try again.`;
+                tryten++;
+            } else {
+                document.getElementById('tens-feedback').textContent = `Incorrect. The answer is ${tensProduct}.`;
+                tensChecked = true;
+                updateFinalAddition();
+            }
+        }
+
+        function checkOnesAnswer() {
+            const onesAnswer = parseInt(document.getElementById('ones-answer').value);
+            if (onesAnswer === onesProduct) {
+                document.getElementById('ones-feedback').textContent = 'Correct!';
+                onesChecked = true;
+                updateFinalAddition();
+            } else if (tryone === 0) {
+                document.getElementById('ones-feedback').textContent = `Try again.`;
+                tryone++;
+            } else {
+                document.getElementById('ones-feedback').textContent = `Incorrect. The answer is ${onesProduct}.`;
+                onesChecked = true;
+                updateFinalAddition();
+            }
+        }
+
+        function updateFinalAddition() {
+            let finalAdditionText = '';
+            if (tensChecked) {
+                finalAdditionText += `  ${tensProduct}\n`;
+            } else {
+                finalAdditionText += '  ___\n';
+            }
+            if (onesChecked) {
+                finalAdditionText += `+ ${onesProduct}\n`;
+            } else {
+                finalAdditionText += '+ ___\n';
+            }
+            finalAdditionText += '———————';
+            document.getElementById('final-addition').textContent = finalAdditionText;
+        }
+
+        function checkFinalAnswer() {
+            const finalAnswer = parseInt(document.getElementById('final-answer').value);
+            if (finalAnswer === correctAnswer) {
+                document.getElementById('final-feedback').textContent = 'Correct!';
+            } else if (tryfinal === 0) {
+                document.getElementById('final-feedback').textContent = `Try again.`;
+                tryfinal++;
+            } else {
+                document.getElementById('final-feedback').textContent = `Incorrect. The answer is ${correctAnswer}.`;
+            }
+        }
+
+        function checkAllAnswers() {
+            checkTensAnswer();
+            checkOnesAnswer();
+            checkFinalAnswer();
+
+            const allCorrect = 
+                document.getElementById('tens-feedback').textContent === 'Correct!' &&
+                document.getElementById('ones-feedback').textContent === 'Correct!' &&
+                document.getElementById('final-feedback').textContent === 'Correct!';
+
+            if (allCorrect) {
+                clearInterval(timerInterval);
+                const endTime = new Date();
+                const timeTaken = Math.floor((endTime - startTime) / 1000);
+                totalTime += timeTaken;
+                problemsSolved++;
+                problemTypes[difficulty]++;
+
+                document.getElementById('result').textContent = `All answers are correct! Well done! Time taken: ${timeTaken}s`;
+                score++;
+                document.getElementById('score').textContent = `Score: ${score}`;
+                
+                if (problemsSolved % 5 === 0) {
+                    showSummary();
+                } else {
+                    setTimeout(generateQuestion, 2000);
+                }
+            } else {
+                document.getElementById('result').textContent = 'Some answers are incorrect. Please check and try again.';
+            }
+
+            updateFinalAddition();
+        }
+
+        function showSummary() {
+            const averageTime = Math.round(totalTime / problemsSolved);
+            const summaryText = `
+                <h3>Session Summary</h3>
+                <p>Total problems solved: ${problemsSolved}</p>
+                <p>Average time per problem: ${averageTime}s</p>
+                <p>Problems solved by difficulty:</p>
+                <ul>
+                    <li>Easy: ${problemTypes.easy}</li>
+                    <li>Medium: ${problemTypes.medium}</li>
+                    <li>Hard: ${problemTypes.hard}</li>
+                </ul>
+                <p>Most challenging: ${getMostChallengingDifficulty()}</p>
+            `;
+            document.getElementById('summary').innerHTML = summaryText;
+        }
+
+        function getMostChallengingDifficulty() {
+            const max = Math.max(problemTypes.easy, problemTypes.medium, problemTypes.hard);
+            if (max === problemTypes.hard) return 'Hard';
+            if (max === problemTypes.medium) return 'Medium';
+            return 'Easy';
+        }
+
+        generateQuestion();
+    </script>
+</body>
+</html>
